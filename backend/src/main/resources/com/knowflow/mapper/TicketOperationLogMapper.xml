@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.knowflow.mapper.TicketOperationLogMapper">
+
+    <resultMap id="TicketOperationLogResultMap" type="com.knowflow.entity.TicketOperationLog">
+        <id property="id" column="id"/>
+        <result property="ticketId" column="ticket_id"/>
+        <result property="operatorUserId" column="operator_user_id"/>
+        <result property="operationType" column="operation_type"/>
+        <result property="fromStatus" column="from_status"/>
+        <result property="toStatus" column="to_status"/>
+        <result property="remark" column="remark"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ticket_operation_log (
+            ticket_id, operator_user_id, operation_type, from_status, to_status, remark
+        ) VALUES (
+            #{ticketId}, #{operatorUserId}, #{operationType}, #{fromStatus}, #{toStatus}, #{remark}
+        )
+    </insert>
+
+    <select id="findByTicketId" resultMap="TicketOperationLogResultMap">
+        SELECT id, ticket_id, operator_user_id, operation_type, from_status, to_status, remark, created_at
+        FROM ticket_operation_log
+        WHERE ticket_id = #{ticketId}
+        ORDER BY created_at ASC, id ASC
+    </select>
+
+</mapper>

@@ -1,0 +1,105 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: knowflow-ai
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+  # Default: do not connect to MySQL. Use profile "local" for knowflow_ai.
+  flyway:
+    enabled: false
+    locations: classpath:db/migration
+  # Spring AI Alibaba 的 DashScope 模型 bean 统一由 com.knowflow.config.AiModelConfig 手工装配，
+  # 关闭其自动配置，避免与本项目按 provider 选择的 ChatModel / EmbeddingModel 冲突。
+  autoconfigure:
+    exclude:
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeChatAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeEmbeddingAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeRerankAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeImageAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeVideoAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAudioSpeechAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAudioTranscriptionAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeMultimodalEmbeddingAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAgentAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAsyncToolCallingManagerAutoConfiguration
+
+mybatis:
+  type-aliases-package: com.knowflow.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+# 密钥只从环境变量读取，仓库里不放真实 secret。
+knowflow:
+  ai:
+    chat:
+      # Local Ollama is the default; no paid API key required.
+      provider: ${KNOWFLOW_AI_CHAT_PROVIDER:ollama}
+      ollama:
+        base-url: ${OLLAMA_BASE_URL:http://127.0.0.1:11434}
+        model: ${KNOWFLOW_OLLAMA_CHAT_MODEL:deepseek-r1:1.5b}
+        temperature: 0.0
+        timeout-ms: 300000
+        num-ctx: 8192
+        num-predict: 2048
+      # Optional remote DeepSeek provider.
+      deepseek:
+        base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+        api-key: ${DEEPSEEK_API_KEY:}
+        model: ${KNOWFLOW_CHAT_MODEL:deepseek-chat}
+        temperature: 0.2
+        timeout-ms: 60000
+    embedding:
+      # auto = 有 DASHSCOPE_API_KEY 时用 Spring AI Alibaba 内置 text-embedding-v3，否则回退本地 bge-m3；
+      # ollama / dashscope 可强制指定，none 关闭向量化（测试用）
+      provider: ${KNOWFLOW_AI_EMBEDDING_PROVIDER:auto}
+      base-url: ${OLLAMA_BASE_URL:http://127.0.0.1:11434}
+      model: ${KNOWFLOW_EMBEDDING_MODEL:bge-m3}
+      dimensions: ${KNOWFLOW_EMBEDDING_DIMENSIONS:1024}
+      timeout-ms: 60000
+      dashscope:
+        base-url: ${DASHSCOPE_BASE_URL:https://dashscope.aliyuncs.com}
+        api-key: ${DASHSCOPE_API_KEY:}
+        model: ${KNOWFLOW_DASHSCOPE_EMBEDDING_MODEL:text-embedding-v3}
+        dimensions: ${KNOWFLOW_DASHSCOPE_EMBEDDING_DIMENSIONS:1024}
+        timeout-ms: ${KNOWFLOW_DASHSCOPE_TIMEOUT_MS:30000}
+  rag:
+    # auto：优先 Redis Stack，不可用回退 MySQL 余弦；redis / mysql 可强制指定
+    vector-store: ${KNOWFLOW_RAG_VECTOR_STORE:auto}
+    recall-top-k: ${KNOWFLOW_RAG_RECALL_TOP_K:5}
+    rerank-top-n: ${KNOWFLOW_RAG_RERANK_TOP_N:3}
+    # 向量召回相似度下限，低于该值先降级到 MySQL 全文检索
+    similarity-threshold: ${KNOWFLOW_RAG_SIMILARITY_THRESHOLD:0.45}
+    # auto：优先模型精排，解析失败自动回退 BM25；llm / bm25 可强制指定
+    rerank-strategy: ${KNOWFLOW_RAG_RERANK_STRATEGY:auto}
+    # 注入 Prompt 的知识库原文总字数上限，控制上下文长度与 token 成本
+    context-max-chars: ${KNOWFLOW_RAG_CONTEXT_MAX_CHARS:1500}
+    redis:
+      host: ${KNOWFLOW_REDIS_HOST:127.0.0.1}
+      port: ${KNOWFLOW_REDIS_PORT:6379}
+      password: ${KNOWFLOW_REDIS_PASSWORD:}
+      database: ${KNOWFLOW_REDIS_DATABASE:0}
+      timeout-ms: ${KNOWFLOW_REDIS_TIMEOUT_MS:3000}
+      index-name: knowflow:chunk:idx
+      key-prefix: "knowflow:chunk:"
+  jwt:
+    secret: ${KNOWFLOW_JWT_SECRET}
+    expire-seconds: 86400
+  storage:
+    local-dir: ${KNOWFLOW_STORAGE_DIR:./data/uploads}
+  rocketmq:
+    enabled: false
+    consumer-enabled: false
+    outbox-dispatch-enabled: false
+    name-server: ${KNOWFLOW_ROCKETMQ_NAME_SERVER:127.0.0.1:9876}
+    producer-group: ${KNOWFLOW_ROCKETMQ_PRODUCER_GROUP:knowflow-ticket-producer}
+    consumer-group: ${KNOWFLOW_ROCKETMQ_CONSUMER_GROUP:knowflow-ticket-consumer}
+    topic: ${KNOWFLOW_ROCKETMQ_TOPIC:TICKET_CREATED}
+    tag: ${KNOWFLOW_ROCKETMQ_TAG:CREATED}
+    send-timeout-ms: 3000
+    max-retry: 5
+    dispatch-batch-size: 20
+    dispatch-interval-ms: 2000

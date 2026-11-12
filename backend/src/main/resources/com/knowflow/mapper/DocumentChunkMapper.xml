@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.knowflow.mapper.DocumentChunkMapper">
+
+    <resultMap id="RetrievableChunkResultMap" type="com.knowflow.entity.RetrievableChunk">
+        <id property="id" column="id"/>
+        <result property="documentId" column="document_id"/>
+        <result property="knowledgeBaseId" column="knowledge_base_id"/>
+        <result property="chunkIndex" column="chunk_index"/>
+        <result property="content" column="content"/>
+        <result property="embeddingJson" column="embedding_json"/>
+        <result property="embeddingModel" column="embedding_model"/>
+        <result property="originalFilename" column="original_filename"/>
+        <result property="fulltextScore" column="fulltext_score"/>
+    </resultMap>
+
+    <sql id="ReadyChunkColumns">
+        c.id,
+        c.document_id,
+        d.knowledge_base_id,
+        c.chunk_index,
+        c.content,
+        c.embedding_json,
+        c.embedding_model,
+        d.original_filename
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO document_chunk (
+            document_id, chunk_index, content, token_count, embedding_json, embedding_model, embedding_dim
+        ) VALUES (
+            #{documentId}, #{chunkIndex}, #{content}, #{tokenCount}, #{embeddingJson}, #{embeddingModel}, #{embeddingDim}
+        )
+    </insert>
+
+    <delete id="deleteByDocumentId">
+        DELETE FROM document_chunk
+        WHERE document_id = #{documentId}
+    </delete>
+
+    <select id="findReadyByKnowledgeBaseId" resultMap="RetrievableChunkResultMap">
+        SELECT <include refid="ReadyChunkColumns"/>
+        FROM document_chunk c
+        INNER JOIN kb_document d ON d.id = c.document_id
+        WHERE d.knowledge_base_id = #{knowledgeBaseId}
+          AND d.deleted_at IS NULL
+          AND d.process_status = 'READY'
+          AND c.embedding_json IS NOT NULL
+    </select>
+
+    <select id="findReadyByDocumentId" resultMap="RetrievableChunkResultMap">
+        SELECT <include refid="ReadyChunkColumns"/>
+        FROM document_chunk c
+        INNER JOIN kb_document d ON d.id = c.document_id
+        WHERE c.document_id = #{documentId}
+          AND d.deleted_at IS NULL
+          AND d.process_status = 'READY'
+          AND c.embedding_json IS NOT NULL
+        ORDER BY c.chunk_index
+    </select>
+
+    <select id="findByIds" resultMap="RetrievableChunkResultMap">
+        SELECT <include refid="ReadyChunkColumns"/>
+        FROM document_chunk c
+        INNER JOIN kb_document d ON d.id = c.document_id
+        WHERE c.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+          AND d.deleted_at IS NULL
+          AND d.process_status = 'READY'
+    </select>
+
+    <!-- 全文检索降级：ngram 解析器下自然语言模式即可命中中文子串，相关度由 MySQL 计算 -->
+    <select id="searchFulltext" resultMap="RetrievableChunkResultMap">
+        SELECT <include refid="ReadyChunkColumns"/>,
+               MATCH(c.content) AGAINST (#{query}) AS fulltext_score
+        FROM document_chunk c
+        INNER JOIN kb_document d ON d.id = c.document_id
+        WHERE d.knowledge_base_id = #{knowledgeBaseId}
+          AND d.deleted_at IS NULL
+          AND d.process_status = 'READY'
+          AND c.embedding_json IS NOT NULL
+          <if test="embeddingModel != null">
+              AND c.embedding_model = #{embeddingModel}
+          </if>
+          AND MATCH(c.content) AGAINST (#{query})
+        ORDER BY fulltext_score DESC
+        LIMIT #{limit}
+    </select>
+
+    <update id="markVectorIndexState">
+        UPDATE document_chunk
+        SET vector_index_state = #{state},
+            vector_indexed_at = CASE WHEN #{state} = 'SYNCED' THEN CURRENT_TIMESTAMP ELSE vector_indexed_at END
+        WHERE document_id = #{documentId}
+    </update>
+
+</mapper>

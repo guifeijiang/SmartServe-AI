@@ -1,0 +1,32 @@
+# Used only on the test classpath. In-memory H2, never MySQL.
+spring:
+  datasource:
+    url: jdbc:h2:mem:knowflow_ai;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  flyway:
+    enabled: false
+
+# 仅测试用假密钥，不是生产密钥；本机 MySQL 登录请用环境变量 KNOWFLOW_JWT_SECRET。
+knowflow:
+  ai:
+    chat:
+      provider: none
+    embedding:
+      provider: none
+  jwt:
+    secret: knowflow-test-jwt-secret-key-32bytes!!
+    expire-seconds: 86400
+  storage:
+    local-dir: ./target/test-uploads
+  rocketmq:
+    enabled: false
+    consumer-enabled: false
+    outbox-dispatch-enabled: false
+    name-server: 127.0.0.1:9876
+    producer-group: knowflow-ticket-producer
+    consumer-group: knowflow-ticket-consumer
+    topic: TICKET_CREATED
+    tag: CREATED
+    max-retry: 5

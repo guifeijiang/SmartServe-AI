@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.knowflow.mapper.SysUserMapper">
+
+    <resultMap id="SysUserResultMap" type="com.knowflow.entity.SysUser">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="passwordHash" column="password_hash"/>
+        <result property="displayName" column="display_name"/>
+        <result property="status" column="status"/>
+        <result property="role" column="role"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="deletedAt" column="deleted_at"/>
+    </resultMap>
+
+    <select id="findByUsername" resultMap="SysUserResultMap">
+        SELECT id, username, password_hash, display_name, status, role, created_at, updated_at, deleted_at
+        FROM sys_user
+        WHERE username = #{username}
+    </select>
+
+    <select id="findById" resultMap="SysUserResultMap">
+        SELECT id, username, password_hash, display_name, status, role, created_at, updated_at, deleted_at
+        FROM sys_user
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_user (username, password_hash, display_name, status, role)
+        VALUES (#{username}, #{passwordHash}, #{displayName}, #{status}, #{role})
+    </insert>
+
+</mapper>

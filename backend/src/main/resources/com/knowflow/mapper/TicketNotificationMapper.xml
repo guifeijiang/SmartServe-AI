@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.knowflow.mapper.TicketNotificationMapper">
+
+    <resultMap id="TicketNotificationResultMap" type="com.knowflow.entity.TicketNotification">
+        <id property="id" column="id"/>
+        <result property="eventId" column="event_id"/>
+        <result property="ticketId" column="ticket_id"/>
+        <result property="customerUserId" column="customer_user_id"/>
+        <result property="content" column="content"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ticket_notification (event_id, ticket_id, customer_user_id, content)
+        VALUES (#{eventId}, #{ticketId}, #{customerUserId}, #{content})
+    </insert>
+
+    <select id="countByEventId" resultType="int">
+        SELECT COUNT(1)
+        FROM ticket_notification
+        WHERE event_id = #{eventId}
+    </select>
+
+    <select id="findByEventId" resultMap="TicketNotificationResultMap">
+        SELECT id, event_id, ticket_id, customer_user_id, content, created_at
+        FROM ticket_notification
+        WHERE event_id = #{eventId}
+    </select>
+
+    <select id="countByCustomerUserId" resultType="long">
+        SELECT COUNT(1)
+        FROM ticket_notification
+        WHERE customer_user_id = #{customerUserId}
+    </select>
+
+    <select id="findPageByCustomerUserId" resultMap="TicketNotificationResultMap">
+        SELECT id, event_id, ticket_id, customer_user_id, content, created_at
+        FROM ticket_notification
+        WHERE customer_user_id = #{customerUserId}
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+</mapper>

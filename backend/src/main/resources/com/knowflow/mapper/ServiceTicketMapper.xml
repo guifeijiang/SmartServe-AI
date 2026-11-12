@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.knowflow.mapper.ServiceTicketMapper">
+
+    <resultMap id="ServiceTicketResultMap" type="com.knowflow.entity.ServiceTicket">
+        <id property="id" column="id"/>
+        <result property="ticketNo" column="ticket_no"/>
+        <result property="customerUserId" column="customer_user_id"/>
+        <result property="assignedAgentId" column="assigned_agent_id"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="category" column="category"/>
+        <result property="priority" column="priority"/>
+        <result property="status" column="status"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="resolvedAt" column="resolved_at"/>
+        <result property="deletedAt" column="deleted_at"/>
+    </resultMap>
+
+    <sql id="ActiveTicketColumns">
+        id, ticket_no, customer_user_id, assigned_agent_id, title, description,
+        category, priority, status, created_at, updated_at, resolved_at, deleted_at
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO service_ticket (
+            ticket_no, customer_user_id, assigned_agent_id, title, description,
+            category, priority, status
+        ) VALUES (
+            #{ticketNo}, #{customerUserId}, #{assignedAgentId}, #{title}, #{description},
+            #{category}, #{priority}, #{status}
+        )
+    </insert>
+
+    <select id="findActiveById" resultMap="ServiceTicketResultMap">
+        SELECT <include refid="ActiveTicketColumns"/>
+        FROM service_ticket
+        WHERE id = #{id}
+          AND deleted_at IS NULL
+    </select>
+
+    <select id="countByFilter" resultType="long">
+        SELECT COUNT(1)
+        FROM service_ticket
+        WHERE deleted_at IS NULL
+        <if test="customerUserId != null">
+            AND customer_user_id = #{customerUserId}
+        </if>
+        <if test="assignedAgentId != null">
+            AND assigned_agent_id = #{assignedAgentId}
+        </if>
+    </select>
+
+    <select id="findPageByFilter" resultMap="ServiceTicketResultMap">
+        SELECT <include refid="ActiveTicketColumns"/>
+        FROM service_ticket
+        WHERE deleted_at IS NULL
+        <if test="customerUserId != null">
+            AND customer_user_id = #{customerUserId}
+        </if>
+        <if test="assignedAgentId != null">
+            AND assigned_agent_id = #{assignedAgentId}
+        </if>
+        ORDER BY created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <update id="assignIfNew">
+        UPDATE service_ticket
+        SET assigned_agent_id = #{agentId},
+            status = 'ASSIGNED'
+        WHERE id = #{id}
+          AND status = 'NEW'
+          AND assigned_agent_id IS NULL
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="claimIfAssignedToAgent">
+        UPDATE service_ticket
+        SET status = 'IN_PROGRESS'
+        WHERE id = #{id}
+          AND status = 'ASSIGNED'
+          AND assigned_agent_id = #{agentId}
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="touchIfInProgressByAgent">
+        UPDATE service_ticket
+        SET status = 'IN_PROGRESS'
+        WHERE id = #{id}
+          AND status = 'IN_PROGRESS'
+          AND assigned_agent_id = #{agentId}
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="resolveIfInProgressByAgent">
+        UPDATE service_ticket
+        SET status = 'RESOLVED',
+            resolved_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND status = 'IN_PROGRESS'
+          AND assigned_agent_id = #{agentId}
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="closeIfResolved">
+        UPDATE service_ticket
+        SET status = 'CLOSED'
+        WHERE id = #{id}
+          AND status = 'RESOLVED'
+          AND deleted_at IS NULL
+        <if test="customerUserId != null">
+            AND customer_user_id = #{customerUserId}
+        </if>
+    </update>
+
+</mapper>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.knowflow.mapper.KnowledgeBaseMapper">
+
+    <resultMap id="KnowledgeBaseResultMap" type="com.knowflow.entity.KnowledgeBase">
+        <id property="id" column="id"/>
+        <result property="ownerUserId" column="owner_user_id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="status" column="status"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="deletedAt" column="deleted_at"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO knowledge_base (owner_user_id, name, description, status)
+        VALUES (#{ownerUserId}, #{name}, #{description}, #{status})
+    </insert>
+
+    <select id="findActiveById" resultMap="KnowledgeBaseResultMap">
+        SELECT id, owner_user_id, name, description, status, created_at, updated_at, deleted_at
+        FROM knowledge_base
+        WHERE id = #{id}
+          AND deleted_at IS NULL
+    </select>
+
+    <select id="findActiveByOwnerUserId" resultMap="KnowledgeBaseResultMap">
+        SELECT id, owner_user_id, name, description, status, created_at, updated_at, deleted_at
+        FROM knowledge_base
+        WHERE owner_user_id = #{ownerUserId}
+          AND deleted_at IS NULL
+        ORDER BY created_at DESC
+    </select>
+
+    <update id="updateByIdAndOwner">
+        UPDATE knowledge_base
+        SET name = #{name},
+            description = #{description}
+        WHERE id = #{id}
+          AND owner_user_id = #{ownerUserId}
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="softDeleteByIdAndOwner">
+        UPDATE knowledge_base
+        SET deleted_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND owner_user_id = #{ownerUserId}
+          AND deleted_at IS NULL
+    </update>
+
+</mapper>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.knowflow.mapper.ChatSessionMapper">
+
+    <resultMap id="ChatSessionResultMap" type="com.knowflow.entity.ChatSession">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="knowledgeBaseId" column="knowledge_base_id"/>
+        <result property="title" column="title"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="deletedAt" column="deleted_at"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chat_session (user_id, knowledge_base_id, title)
+        VALUES (#{userId}, #{knowledgeBaseId}, #{title})
+    </insert>
+
+    <select id="findActiveById" resultMap="ChatSessionResultMap">
+        SELECT id, user_id, knowledge_base_id, title, created_at, updated_at, deleted_at
+        FROM chat_session
+        WHERE id = #{id}
+          AND deleted_at IS NULL
+    </select>
+
+    <select id="findActiveByUserIdAndKnowledgeBaseId" resultMap="ChatSessionResultMap">
+        SELECT id, user_id, knowledge_base_id, title, created_at, updated_at, deleted_at
+        FROM chat_session
+        WHERE user_id = #{userId}
+          AND knowledge_base_id = #{knowledgeBaseId}
+          AND deleted_at IS NULL
+        ORDER BY updated_at DESC, id DESC
+    </select>
+
+    <update id="touchUpdatedAt">
+        UPDATE chat_session
+        SET updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="updateTitle">
+        UPDATE chat_session
+        SET title = #{title}
+        WHERE id = #{id}
+          AND deleted_at IS NULL
+    </update>
+
+</mapper>
